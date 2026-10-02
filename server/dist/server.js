@@ -40,13 +40,14 @@ var import_supabase_js = require("@supabase/supabase-js");
 var import_dotenv = __toESM(require("dotenv"));
 var import_path = __toESM(require("path"));
 import_dotenv.default.config({ path: import_path.default.resolve(process.cwd(), ".env") });
+import_dotenv.default.config({ path: import_path.default.resolve(process.cwd(), "server", ".env") });
 import_dotenv.default.config({ path: import_path.default.resolve(process.cwd(), "..", ".env") });
 var env = {
   NODE_ENV: process.env.NODE_ENV || "development",
   PORT: parseInt(process.env.PORT || "5000", 10),
   FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:5173",
   API_BASE_URL: process.env.API_BASE_URL || "http://localhost:5000/api/v1",
-  SUPABASE_URL: process.env.SUPABASE_URL || "https://uivklneqkrddlovclkqh.supabase.co",
+  SUPABASE_URL: process.env.SUPABASE_URL || "https://fzhinkkazznnglrxxods.supabase.co",
   SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "",
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   DATABASE_URL: process.env.DATABASE_URL || "",
@@ -575,8 +576,9 @@ async function callGemini(prompt, systemInstruction = AI_SYSTEM_PROMPT) {
     return null;
   }
   try {
+    const model = env.GEMINI_MODEL || "gemini-2.0-flash";
     const response = await genAIClient.models.generateContent({
-      model: env.GEMINI_MODEL,
+      model,
       contents: prompt,
       config: {
         systemInstruction,
@@ -586,8 +588,21 @@ async function callGemini(prompt, systemInstruction = AI_SYSTEM_PROMPT) {
     });
     return response.text || null;
   } catch (error) {
-    console.error("[Gemini API Call Error]:", error?.message || error);
-    return null;
+    try {
+      const fallback = await genAIClient.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: prompt,
+        config: {
+          systemInstruction,
+          responseMimeType: "application/json",
+          temperature: 0.2
+        }
+      });
+      return fallback.text || null;
+    } catch {
+      console.warn("[Gemini Fallback Advisory]: Using deterministic criteria rules.");
+      return null;
+    }
   }
 }
 

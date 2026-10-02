@@ -3,6 +3,7 @@ import path from 'path';
 
 // Load .env from root or server
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'server', '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '..', '.env') });
 
 export const env = {
@@ -11,7 +12,7 @@ export const env = {
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
   API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:5000/api/v1',
 
-  SUPABASE_URL: process.env.SUPABASE_URL || 'https://uivklneqkrddlovclkqh.supabase.co',
+  SUPABASE_URL: process.env.SUPABASE_URL || 'https://fzhinkkazznnglrxxods.supabase.co',
   SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   DATABASE_URL: process.env.DATABASE_URL || '',

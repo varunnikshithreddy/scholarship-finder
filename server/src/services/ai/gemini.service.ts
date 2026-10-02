@@ -48,8 +48,9 @@ export async function callGemini(
   }
 
   try {
+    const model = env.GEMINI_MODEL || 'gemini-2.0-flash';
     const response = await genAIClient.models.generateContent({
-      model: env.GEMINI_MODEL,
+      model,
       contents: prompt,
       config: {
         systemInstruction,
@@ -60,7 +61,20 @@ export async function callGemini(
 
     return response.text || null;
   } catch (error: any) {
-    console.error('[Gemini API Call Error]:', error?.message || error);
-    return null;
+    try {
+      const fallback = await genAIClient.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: prompt,
+        config: {
+          systemInstruction,
+          responseMimeType: 'application/json',
+          temperature: 0.2,
+        },
+      });
+      return fallback.text || null;
+    } catch {
+      console.warn('[Gemini Fallback Advisory]: Using deterministic criteria rules.');
+      return null;
+    }
   }
 }
