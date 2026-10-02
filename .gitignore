@@ -14,6 +14,8 @@ client/dist/
 dist/
 !server/dist/
 !server/dist/**
+!shared/dist/
+!shared/dist/**
 build/
 *.tsbuildinfo
 

@@ -369,10 +369,229 @@ function validateQuery(schema) {
   };
 }
 
+// ../shared/src/schemas/scholarship.schema.ts
+var import_zod2 = require("zod");
+var documentRequirementSchema = import_zod2.z.object({
+  name: import_zod2.z.string().min(1, "Document name is required").max(200),
+  description: import_zod2.z.string().max(500),
+  is_mandatory: import_zod2.z.boolean().default(true),
+  accepted_format: import_zod2.z.string().optional(),
+  source_reference: import_zod2.z.string().optional()
+});
+var scholarshipFilterSchema = import_zod2.z.object({
+  search: import_zod2.z.string().optional(),
+  category: import_zod2.z.string().optional(),
+  education_level: import_zod2.z.string().optional(),
+  discipline: import_zod2.z.string().optional(),
+  country: import_zod2.z.string().optional(),
+  state: import_zod2.z.string().optional(),
+  min_funding: import_zod2.z.coerce.number().min(0).optional(),
+  max_funding: import_zod2.z.coerce.number().min(0).optional(),
+  status: import_zod2.z.enum(["draft", "pending_review", "published", "archived"]).optional(),
+  application_status: import_zod2.z.enum(["open", "closing_soon", "upcoming", "closed"]).optional(),
+  sort_by: import_zod2.z.enum(["latest", "deadline", "funding_high", "funding_low", "relevance"]).default("latest"),
+  page: import_zod2.z.coerce.number().int().min(1).default(1),
+  pageSize: import_zod2.z.coerce.number().int().min(1).max(50).default(12)
+});
+var baseScholarshipSchema = import_zod2.z.object({
+  title: import_zod2.z.string().min(5, "Title must be at least 5 characters").max(255),
+  slug: import_zod2.z.string().min(3).max(255).regex(/^[a-z0-9-]+$/, "Slug must be lower-case alphanumeric with dashes"),
+  short_description: import_zod2.z.string().max(500).optional(),
+  description: import_zod2.z.string().min(20, "Description must be at least 20 characters"),
+  provider_id: import_zod2.z.string().uuid("Invalid provider ID"),
+  category_id: import_zod2.z.string().uuid("Invalid category ID").optional(),
+  status: import_zod2.z.enum(["draft", "pending_review", "published", "archived"]).default("draft"),
+  verification_status: import_zod2.z.enum(["unverified", "pending", "verified", "rejected", "needs_review"]).default("unverified"),
+  education_levels: import_zod2.z.array(import_zod2.z.string()).default([]),
+  disciplines: import_zod2.z.array(import_zod2.z.string()).default([]),
+  eligible_countries: import_zod2.z.array(import_zod2.z.string()).default(["India"]),
+  eligible_states: import_zod2.z.array(import_zod2.z.string()).default([]),
+  eligible_nationalities: import_zod2.z.array(import_zod2.z.string()).default(["Indian"]),
+  funding_amount: import_zod2.z.number().min(0).optional().nullable(),
+  funding_currency: import_zod2.z.string().length(3).default("INR"),
+  funding_frequency: import_zod2.z.string().max(100).optional().nullable(),
+  funding_coverage: import_zod2.z.string().max(255).optional().nullable(),
+  application_start_date: import_zod2.z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date format must be YYYY-MM-DD").optional().nullable(),
+  application_deadline: import_zod2.z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date format must be YYYY-MM-DD").optional().nullable(),
+  deadline_timezone: import_zod2.z.string().default("Asia/Kolkata"),
+  official_application_url: import_zod2.z.string().url("Must be a valid URL").optional().nullable().or(import_zod2.z.literal("")),
+  official_source_url: import_zod2.z.string().url("Must be a valid official source URL"),
+  selection_process: import_zod2.z.string().optional().nullable(),
+  renewal_conditions: import_zod2.z.string().optional().nullable(),
+  application_instructions: import_zod2.z.string().optional().nullable(),
+  required_documents: import_zod2.z.array(documentRequirementSchema).default([]),
+  is_featured: import_zod2.z.boolean().default(false)
+});
+var createScholarshipSchema = baseScholarshipSchema.refine((data) => {
+  if (data.application_start_date && data.application_deadline) {
+    return new Date(data.application_start_date) <= new Date(data.application_deadline);
+  }
+  return true;
+}, {
+  message: "Application start date must be before or equal to deadline",
+  path: ["application_start_date"]
+});
+var updateScholarshipSchema = baseScholarshipSchema.partial();
+var eligibilityCriterionSchema = import_zod2.z.object({
+  criterion_type: import_zod2.z.string().min(1),
+  operator: import_zod2.z.enum([
+    "equals",
+    "not_equals",
+    "greater_than",
+    "greater_than_or_equal",
+    "less_than",
+    "less_than_or_equal",
+    "in",
+    "contains",
+    "between"
+  ]),
+  expected_value: import_zod2.z.any(),
+  description: import_zod2.z.string().max(500).optional(),
+  source_text: import_zod2.z.string().max(1e3).optional(),
+  is_mandatory: import_zod2.z.boolean().default(true),
+  display_order: import_zod2.z.number().int().default(0)
+});
+var saveScholarshipSchema = import_zod2.z.object({
+  scholarship_id: import_zod2.z.string().uuid(),
+  application_status: import_zod2.z.enum([
+    "interested",
+    "planning_to_apply",
+    "in_progress",
+    "submitted",
+    "awarded",
+    "not_selected",
+    "no_longer_interested"
+  ]).default("interested"),
+  personal_note: import_zod2.z.string().max(1e3).optional()
+});
+var updateSavedScholarshipSchema = import_zod2.z.object({
+  application_status: import_zod2.z.enum([
+    "interested",
+    "planning_to_apply",
+    "in_progress",
+    "submitted",
+    "awarded",
+    "not_selected",
+    "no_longer_interested"
+  ]).optional(),
+  personal_note: import_zod2.z.string().max(1e3).optional()
+});
+var reportScholarshipSchema = import_zod2.z.object({
+  scholarship_id: import_zod2.z.string().uuid(),
+  report_type: import_zod2.z.string().min(2).max(100),
+  description: import_zod2.z.string().min(10, "Please provide more details").max(2e3)
+});
+
+// ../shared/src/schemas/profile.schema.ts
+var import_zod3 = require("zod");
+var userRegistrationSchema = import_zod3.z.object({
+  full_name: import_zod3.z.string().min(2, "Name must be at least 2 characters").max(100),
+  email: import_zod3.z.string().email("Please enter a valid email address"),
+  password: import_zod3.z.string().min(8, "Password must be at least 8 characters").regex(/[A-Z]/, "Password must contain at least one uppercase letter").regex(/[0-9]/, "Password must contain at least one number"),
+  terms_agreed: import_zod3.z.boolean().refine((val) => val === true, {
+    message: "You must agree to the Terms of Service and Privacy Policy"
+  })
+});
+var userLoginSchema = import_zod3.z.object({
+  email: import_zod3.z.string().email("Invalid email address"),
+  password: import_zod3.z.string().min(1, "Password is required")
+});
+var updateProfileSchema = import_zod3.z.object({
+  full_name: import_zod3.z.string().min(2).max(100).optional(),
+  country: import_zod3.z.string().max(100).optional().nullable(),
+  state: import_zod3.z.string().max(100).optional().nullable(),
+  nationality: import_zod3.z.string().max(100).optional().nullable(),
+  date_of_birth: import_zod3.z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date format must be YYYY-MM-DD").optional().nullable(),
+  education_level: import_zod3.z.string().max(100).optional().nullable(),
+  course: import_zod3.z.string().max(150).optional().nullable(),
+  discipline: import_zod3.z.string().max(150).optional().nullable(),
+  institution: import_zod3.z.string().max(255).optional().nullable(),
+  institution_type: import_zod3.z.string().max(100).optional().nullable(),
+  academic_year: import_zod3.z.string().max(50).optional().nullable(),
+  academic_score: import_zod3.z.number().min(0).max(100).optional().nullable(),
+  grading_scale: import_zod3.z.enum(["percentage", "cgpa_10", "cgpa_4"]).default("percentage").optional(),
+  expected_graduation_year: import_zod3.z.number().int().min(1900).max(2200).optional().nullable(),
+  annual_family_income: import_zod3.z.number().min(0).optional().nullable(),
+  income_currency: import_zod3.z.string().length(3).default("INR").optional()
+});
+var updateNotificationPreferencesSchema = import_zod3.z.object({
+  in_app_enabled: import_zod3.z.boolean().optional(),
+  email_enabled: import_zod3.z.boolean().optional(),
+  deadline_reminders_enabled: import_zod3.z.boolean().optional(),
+  opening_reminders_enabled: import_zod3.z.boolean().optional(),
+  scholarship_updates_enabled: import_zod3.z.boolean().optional(),
+  reminder_days: import_zod3.z.array(import_zod3.z.number().int().positive()).optional()
+});
+
+// ../shared/src/schemas/ai.schema.ts
+var import_zod4 = require("zod");
+var checkEligibilityRequestSchema = import_zod4.z.object({
+  scholarship_id: import_zod4.z.string().uuid("Invalid scholarship ID"),
+  profile_override: import_zod4.z.object({
+    education_level: import_zod4.z.string().optional(),
+    discipline: import_zod4.z.string().optional(),
+    academic_score: import_zod4.z.number().min(0).max(100).optional(),
+    annual_family_income: import_zod4.z.number().min(0).optional(),
+    state: import_zod4.z.string().optional(),
+    country: import_zod4.z.string().optional(),
+    nationality: import_zod4.z.string().optional()
+  }).optional()
+});
+var aiEligibilityAssessmentSchema = import_zod4.z.object({
+  status: import_zod4.z.enum([
+    "likely_eligible",
+    "potentially_eligible",
+    "likely_ineligible",
+    "insufficient_information"
+  ]),
+  matched_criteria: import_zod4.z.array(import_zod4.z.object({
+    criterion_id: import_zod4.z.string(),
+    criterion: import_zod4.z.string(),
+    student_value: import_zod4.z.any(),
+    required_value: import_zod4.z.any(),
+    explanation: import_zod4.z.string()
+  })).default([]),
+  unmatched_criteria: import_zod4.z.array(import_zod4.z.object({
+    criterion_id: import_zod4.z.string(),
+    criterion: import_zod4.z.string(),
+    student_value: import_zod4.z.any(),
+    required_value: import_zod4.z.any(),
+    explanation: import_zod4.z.string()
+  })).default([]),
+  missing_information: import_zod4.z.array(import_zod4.z.object({
+    criterion_id: import_zod4.z.string().optional(),
+    field: import_zod4.z.string(),
+    reason: import_zod4.z.string()
+  })).default([]),
+  explanation: import_zod4.z.string(),
+  confidence_completeness: import_zod4.z.number().min(0).max(100).default(50),
+  next_steps: import_zod4.z.array(import_zod4.z.string()).default([]),
+  disclaimer: import_zod4.z.string().default("This is an AI-assisted assessment based on the information currently available. It is not an official eligibility decision. Please verify all requirements and deadlines on the scholarship provider's official website before applying.")
+});
+var aiChatRequestSchema = import_zod4.z.object({
+  message: import_zod4.z.string().min(1, "Message cannot be empty").max(1e3),
+  scholarship_id: import_zod4.z.string().uuid().optional(),
+  conversation_history: import_zod4.z.array(import_zod4.z.object({
+    sender: import_zod4.z.enum(["user", "assistant"]),
+    content: import_zod4.z.string().max(2e3)
+  })).max(10).optional().default([])
+});
+var aiChatResponseSchema = import_zod4.z.object({
+  answer: import_zod4.z.string(),
+  source_references: import_zod4.z.array(import_zod4.z.object({
+    scholarship_id: import_zod4.z.string(),
+    title: import_zod4.z.string(),
+    source_url: import_zod4.z.string()
+  })).default([]),
+  related_scholarship_ids: import_zod4.z.array(import_zod4.z.string()).default([]),
+  needs_clarification: import_zod4.z.boolean().default(false),
+  clarification_question: import_zod4.z.string().nullable().optional(),
+  information_limitations: import_zod4.z.array(import_zod4.z.string()).default([])
+});
+
 // src/routes/scholarships.routes.ts
-var import_shared = require("@scholarship-finder/shared");
 var router = (0, import_express.Router)();
-router.get("/", validateQuery(import_shared.scholarshipFilterSchema), listScholarships);
+router.get("/", validateQuery(scholarshipFilterSchema), listScholarships);
 router.get("/latest", getLatest);
 router.get("/featured", getFeatured);
 router.get("/:id", getDetails);
@@ -524,11 +743,10 @@ async function optionalAuth(req, _res, next) {
 }
 
 // src/routes/profile.routes.ts
-var import_shared2 = require("@scholarship-finder/shared");
 var router2 = (0, import_express2.Router)();
 router2.use(requireAuth);
 router2.get("/", getMyProfile);
-router2.patch("/", validateBody(import_shared2.updateProfileSchema), updateMyProfile);
+router2.patch("/", validateBody(updateProfileSchema), updateMyProfile);
 router2.delete("/", deleteMyAccount);
 var profile_routes_default = router2;
 
@@ -961,9 +1179,8 @@ var aiRateLimiter = (0, import_express_rate_limit.default)({
 });
 
 // src/routes/eligibility.routes.ts
-var import_shared3 = require("@scholarship-finder/shared");
 var router3 = (0, import_express3.Router)();
-router3.post("/check", optionalAuth, aiRateLimiter, validateBody(import_shared3.checkEligibilityRequestSchema), checkEligibility);
+router3.post("/check", optionalAuth, aiRateLimiter, validateBody(checkEligibilityRequestSchema), checkEligibility);
 router3.get("/history", requireAuth, getAssessmentHistory);
 router3.get("/:id", requireAuth, getAssessmentById);
 var eligibility_routes_default = router3;
@@ -1207,12 +1424,11 @@ async function removeSaved(req, res, next) {
 }
 
 // src/routes/savedScholarships.routes.ts
-var import_shared4 = require("@scholarship-finder/shared");
 var router5 = (0, import_express5.Router)();
 router5.use(requireAuth);
 router5.get("/", listSaved);
-router5.post("/", validateBody(import_shared4.saveScholarshipSchema), save);
-router5.patch("/:id", validateBody(import_shared4.updateSavedScholarshipSchema), updateSaved);
+router5.post("/", validateBody(saveScholarshipSchema), save);
+router5.patch("/:id", validateBody(updateSavedScholarshipSchema), updateSaved);
 router5.delete("/:id", removeSaved);
 var savedScholarships_routes_default = router5;
 
@@ -1220,7 +1436,6 @@ var savedScholarships_routes_default = router5;
 var import_express6 = require("express");
 
 // src/services/ai/assistant.service.ts
-var import_shared5 = require("@scholarship-finder/shared");
 async function askScholarshipAssistant({ message, scholarshipId, history = [] }) {
   let contextScholarships = [];
   if (scholarshipId) {
@@ -1307,7 +1522,7 @@ Respond with valid JSON matching this schema:
       const rawText = await callGemini(prompt);
       if (rawText) {
         const parsed = JSON.parse(rawText);
-        const validated = import_shared5.aiChatResponseSchema.safeParse(parsed);
+        const validated = aiChatResponseSchema.safeParse(parsed);
         if (validated.success) {
           return validated.data;
         }
@@ -1358,9 +1573,8 @@ async function chat(req, res, next) {
 }
 
 // src/routes/assistant.routes.ts
-var import_shared6 = require("@scholarship-finder/shared");
 var router6 = (0, import_express6.Router)();
-router6.post("/chat", aiRateLimiter, validateBody(import_shared6.aiChatRequestSchema), chat);
+router6.post("/chat", aiRateLimiter, validateBody(aiChatRequestSchema), chat);
 var assistant_routes_default = router6;
 
 // src/routes/notifications.routes.ts
@@ -1462,14 +1676,13 @@ async function updatePreferences(req, res, next) {
 }
 
 // src/routes/notifications.routes.ts
-var import_shared7 = require("@scholarship-finder/shared");
 var router7 = (0, import_express7.Router)();
 router7.use(requireAuth);
 router7.get("/", listNotifications);
 router7.patch("/read-all", markAllRead);
 router7.patch("/:id/read", markRead);
 router7.get("/preferences", getPreferences);
-router7.patch("/preferences", validateBody(import_shared7.updateNotificationPreferencesSchema), updatePreferences);
+router7.patch("/preferences", validateBody(updateNotificationPreferencesSchema), updatePreferences);
 var notifications_routes_default = router7;
 
 // src/routes/admin.routes.ts
@@ -1760,13 +1973,12 @@ async function listAuditLogs(_req, res, next) {
 }
 
 // src/routes/admin.routes.ts
-var import_shared8 = require("@scholarship-finder/shared");
 var router8 = (0, import_express8.Router)();
 router8.use(requireAdmin);
 router8.get("/overview", getOverview);
 router8.get("/scholarships", listScholarships2);
-router8.post("/scholarships", validateBody(import_shared8.createScholarshipSchema), createScholarship);
-router8.patch("/scholarships/:id", validateBody(import_shared8.updateScholarshipSchema), updateScholarship);
+router8.post("/scholarships", validateBody(createScholarshipSchema), createScholarship);
+router8.patch("/scholarships/:id", validateBody(updateScholarshipSchema), updateScholarship);
 router8.delete("/scholarships/:id", archiveScholarship);
 router8.post("/scholarships/:id/publish", publishScholarship);
 router8.post("/scholarships/:id/unpublish", unpublishScholarship);
