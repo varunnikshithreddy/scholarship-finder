@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "esbuild src/server.ts --bundle --platform=node --target=node20 --outfile=dist/server.js --packages=external",
-    "prestart": "esbuild src/server.ts --bundle --platform=node --target=node20 --outfile=dist/server.js --packages=external",
     "start": "node dist/server.js",
     "test": "vitest run"
   },

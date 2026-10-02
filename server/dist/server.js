@@ -1822,7 +1822,24 @@ app.use((0, import_cors.default)({
 }));
 app.use(import_express10.default.json({ limit: "5mb" }));
 app.use(import_express10.default.urlencoded({ extended: true, limit: "5mb" }));
-app.use(standardRateLimiter);
+app.get("/", (_req, res) => {
+  res.json({
+    status: "ok",
+    service: "Scholarship Finder Backend API",
+    version: "1.0.0",
+    endpoints: {
+      health: "/health",
+      api_v1: "/api/v1"
+    }
+  });
+});
+app.get("/health", (_req, res) => {
+  res.json({
+    status: "healthy",
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+    service: "Scholarship Finder API"
+  });
+});
 app.use("/api/v1", routes_default);
 app.use("/api", routes_default);
 app.use("*", (req, res) => {
@@ -1837,13 +1854,16 @@ app.use("*", (req, res) => {
 app.use(errorHandler);
 
 // src/server.ts
-var server = app.listen(env.PORT, () => {
+var PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : env.PORT;
+var HOST = "0.0.0.0";
+var server = app.listen(PORT, HOST, () => {
   console.log(`=======================================================`);
   console.log(` Scholarship Finder Backend API Server Running`);
-  console.log(` Port: ${env.PORT}`);
+  console.log(` Host: ${HOST}`);
+  console.log(` Port: ${PORT}`);
   console.log(` Environment: ${env.NODE_ENV}`);
-  console.log(` Base URL: http://localhost:${env.PORT}/api/v1`);
-  console.log(` Healthcheck: http://localhost:${env.PORT}/api/v1/health`);
+  console.log(` Base URL: http://${HOST}:${PORT}/api/v1`);
+  console.log(` Healthcheck: http://${HOST}:${PORT}/health`);
   console.log(`=======================================================`);
 });
 process.on("SIGTERM", () => {

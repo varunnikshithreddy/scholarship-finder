@@ -1,13 +1,17 @@
 import { app } from './app';
 import { env } from './config/env';
 
-const server = app.listen(env.PORT, () => {
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : env.PORT;
+const HOST = '0.0.0.0';
+
+const server = app.listen(PORT, HOST, () => {
   console.log(`=======================================================`);
   console.log(` Scholarship Finder Backend API Server Running`);
-  console.log(` Port: ${env.PORT}`);
+  console.log(` Host: ${HOST}`);
+  console.log(` Port: ${PORT}`);
   console.log(` Environment: ${env.NODE_ENV}`);
-  console.log(` Base URL: http://localhost:${env.PORT}/api/v1`);
-  console.log(` Healthcheck: http://localhost:${env.PORT}/api/v1/health`);
+  console.log(` Base URL: http://${HOST}:${PORT}/api/v1`);
+  console.log(` Healthcheck: http://${HOST}:${PORT}/health`);
   console.log(`=======================================================`);
 });
 

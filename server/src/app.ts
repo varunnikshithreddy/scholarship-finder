@@ -37,8 +37,26 @@ app.use(cors({
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
-// Global standard rate limiter
-app.use(standardRateLimiter);
+// Root & Healthcheck handlers (for cloud platforms like Render)
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'Scholarship Finder Backend API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      api_v1: '/api/v1'
+    }
+  });
+});
+
+app.get('/health', (_req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: 'Scholarship Finder API'
+  });
+});
 
 // Mount API routes
 app.use('/api/v1', apiRouter);
